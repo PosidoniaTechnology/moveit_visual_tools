@@ -49,7 +49,11 @@
 
 // ROS Messages
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <geometry_msgs/msg/pose.hpp>
 #include <graph_msgs/msg/geometry_graph.hpp>
+
+//TF2
+#include <tf2_eigen/tf2_eigen.hpp>
 
 // C++
 #include <map>
@@ -575,7 +579,7 @@ public:
   bool publishTrajectoryPath(const moveit_msgs::msg::RobotTrajectory& trajectory_msg,
                              const moveit_msgs::msg::RobotState& robot_state, bool blocking = false);
   void publishTrajectoryPath(const moveit_msgs::msg::DisplayTrajectory& display_trajectory_msg);
-
+  
   /**
    * \brief Display a line of the end effector path from a robot trajectory path
    * \param trajectory_msg - the robot plan
@@ -611,6 +615,50 @@ public:
                              const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
   bool publishTrajectoryLine(const robot_trajectory::RobotTrajectory& robot_trajectory,
                              const moveit::core::JointModelGroup* arm_jmg,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+  /**
+   * \brief Display a line of the end effector path from a robot trajectory path
+   * \param trajectory_msg - the robot plan
+   * \param ee_parent_link - the link that we should trace a path of, e.g. the gripper link
+   * \param arm_jmg - the set of joints to use, e.g. the MoveIt planning group, e.g. "left_arm"
+   * \param reference_frame - the frame from which the visualized trajectory will start
+   * \param color - display color of markers
+   * \return true on success
+   */
+  bool publishTrajectoryLine(const moveit_msgs::msg::RobotTrajectory& trajectory_msg,
+                             const moveit::core::LinkModel* ee_parent_link,
+                             const moveit::core::JointModelGroup* arm_jmg,
+                             const geometry_msgs::msg::Pose & reference_frame,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+  bool publishTrajectoryLine(const robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+                             const moveit::core::LinkModel* ee_parent_link,
+                             const geometry_msgs::msg::Pose & reference_frame,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+  bool publishTrajectoryLine(const robot_trajectory::RobotTrajectory& robot_trajectory,
+                             const moveit::core::LinkModel* ee_parent_link,
+                             const geometry_msgs::msg::Pose & reference_frame,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+
+  /**
+   * \brief Display a line of the end effector(s) path(s) from a robot trajectory path
+   *        This version can visualize multiple end effectors
+   * \param trajectory_msg - the robot plan
+   * \param arm_jmg - the set of joints to use, e.g. the MoveIt planning group, e.g. "left_arm".
+   * \param reference_frame - the frame from which the visualized trajectory will start
+   * \param color - display color of markers
+   * \return true on success
+   */
+  bool publishTrajectoryLine(const moveit_msgs::msg::RobotTrajectory& trajectory_msg,
+                             const moveit::core::JointModelGroup* arm_jmg,
+                             const geometry_msgs::msg::Pose & reference_frame,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+  bool publishTrajectoryLine(const robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+                             const moveit::core::JointModelGroup* arm_jmg,
+                             const geometry_msgs::msg::Pose & reference_frame,
+                             const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
+  bool publishTrajectoryLine(const robot_trajectory::RobotTrajectory& robot_trajectory,
+                             const moveit::core::JointModelGroup* arm_jmg,
+                             const geometry_msgs::msg::Pose & reference_frame,
                              const rviz_visual_tools::Colors& color = rviz_visual_tools::LIME_GREEN);
 
   /**

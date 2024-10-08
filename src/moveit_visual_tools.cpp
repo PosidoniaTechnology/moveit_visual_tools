@@ -1440,6 +1440,146 @@ bool MoveItVisualTools::publishTrajectoryLine(const robot_trajectory::RobotTraje
   return true;
 }
 
+bool MoveItVisualTools::publishTrajectoryLine(const moveit_msgs::msg::RobotTrajectory& trajectory_msg,
+                                              const moveit::core::LinkModel* ee_parent_link,
+                                              const moveit::core::JointModelGroup* arm_jmg,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  // Error check
+  if (!arm_jmg)
+  {
+    RCLCPP_FATAL_STREAM(LOGGER, "arm_jmg is NULL");
+    return false;
+  }
+
+  // Always load the robot state before using
+  loadSharedRobotState();
+
+  // Convert trajectory into a series of RobotStates
+  robot_trajectory::RobotTrajectoryPtr robot_trajectory(
+      new robot_trajectory::RobotTrajectory(robot_model_, arm_jmg->getName()));
+  robot_trajectory->setRobotTrajectoryMsg(*shared_robot_state_, trajectory_msg);
+
+  return publishTrajectoryLine(robot_trajectory, ee_parent_link, reference_frame, color);
+}
+
+bool MoveItVisualTools::publishTrajectoryLine(const robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+                                              const moveit::core::LinkModel* ee_parent_link,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  return publishTrajectoryLine(*robot_trajectory, ee_parent_link, reference_frame, color);
+}
+
+bool MoveItVisualTools::publishTrajectoryLine(const robot_trajectory::RobotTrajectory& robot_trajectory,
+                                              const moveit::core::LinkModel* ee_parent_link,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  // Error check
+  if (!ee_parent_link)
+  {
+    RCLCPP_FATAL_STREAM(LOGGER, "ee_parent_link is NULL");
+    return false;
+  }
+
+  // Point location datastructure
+  EigenSTL::vector_Vector3d path;
+
+  const Eigen::Isometry3d& tip_to_base = robot_trajectory.getWayPoint(0).getGlobalLinkTransform(ee_parent_link);
+  Eigen::Isometry3d ref_to_base;
+  tf2::fromMsg(reference_frame, ref_to_base);
+
+  // Visualize end effector position of cartesian path
+  for (std::size_t i = 0; i < robot_trajectory.getWayPointCount(); ++i)
+  {
+    const Eigen::Isometry3d& tip_pose = robot_trajectory.getWayPoint(i).getGlobalLinkTransform(ee_parent_link);
+
+    // Error Check
+    if (tip_pose.translation().x() != tip_pose.translation().x())
+    {
+      RCLCPP_ERROR_STREAM(LOGGER, "NAN DETECTED AT TRAJECTORY POINT i=" << i);
+      return false;
+    }
+
+    // Place point to reference_frame (reference_frame w.r.t. base_link)
+    auto out =  ref_to_base * tip_to_base.inverse() * tip_pose;
+
+    path.push_back(out.translation());
+    publishSphere(out, color, rviz_visual_tools::MEDIUM);
+  }
+
+  const double radius = 0.005;
+  publishPath(path, color, radius);
+
+  return true;
+}
+
+bool MoveItVisualTools::publishTrajectoryLine(const moveit_msgs::msg::RobotTrajectory& trajectory_msg,
+                                              const moveit::core::JointModelGroup* arm_jmg,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  if (!arm_jmg)
+  {
+    RCLCPP_FATAL_STREAM(LOGGER, "arm_jmg is NULL");
+    return false;
+  }
+
+  std::vector<const moveit::core::LinkModel*> tips;
+  if (!arm_jmg->getEndEffectorTips(tips) || tips.empty())
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Unable to get end effector tips from jmg");
+    return false;
+  }
+
+  // For each end effector
+  for (const moveit::core::LinkModel* ee_parent_link : tips)
+  {
+    if (!publishTrajectoryLine(trajectory_msg, ee_parent_link, arm_jmg, reference_frame, color))
+      return false;
+  }
+
+  return true;
+}
+
+bool MoveItVisualTools::publishTrajectoryLine(const robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+                                              const moveit::core::JointModelGroup* arm_jmg,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  return publishTrajectoryLine(*robot_trajectory, arm_jmg, reference_frame, color);
+}
+
+bool MoveItVisualTools::publishTrajectoryLine(const robot_trajectory::RobotTrajectory& robot_trajectory,
+                                              const moveit::core::JointModelGroup* arm_jmg,
+                                              const geometry_msgs::msg::Pose & reference_frame,
+                                              const rviz_visual_tools::Colors& color)
+{
+  if (!arm_jmg)
+  {
+    RCLCPP_FATAL_STREAM(LOGGER, "arm_jmg is NULL");
+    return false;
+  }
+
+  std::vector<const moveit::core::LinkModel*> tips;
+  if (!arm_jmg->getEndEffectorTips(tips) || tips.empty())
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Unable to get end effector tips from jmg");
+    return false;
+  }
+
+  // For each end effector
+  for (const moveit::core::LinkModel* ee_parent_link : tips)
+  {
+    if (!publishTrajectoryLine(robot_trajectory, ee_parent_link, reference_frame, color))
+      return false;
+  }
+
+  return true;
+}
+
 bool MoveItVisualTools::publishTrajectoryPoints(const std::vector<moveit::core::RobotStatePtr>& robot_state_trajectory,
                                                 const moveit::core::LinkModel* ee_parent_link,
                                                 const rviz_visual_tools::Colors& color)
